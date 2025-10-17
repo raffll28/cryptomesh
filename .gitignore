@@ -9,3 +9,6 @@ __pycache__/
 # Ignorar pastas de ambiente virtual do Python
 venv/
 .venv/
+
+# Ignorar arquivos de dados da blockchain
+blockchain-*.json

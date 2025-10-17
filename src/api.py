@@ -10,8 +10,8 @@ app = Flask(__name__)
 # Gera um endereço globalmente único para este nó
 node_identifier = str(uuid4()).replace('-', '')
 
-# Instancia a Blockchain
-blockchain = Blockchain()
+# A instância da Blockchain será criada no main, com o arquivo de storage correto
+blockchain = None
 
 @app.route('/mine', methods=['GET'])
 def mine():
@@ -103,5 +103,9 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on')
     args = parser.parse_args()
     port = args.port
+
+    # Instancia a blockchain com um arquivo de storage específico para esta porta
+    storage_file = f'blockchain-{port}.json'
+    blockchain = Blockchain(storage_path=storage_file)
 
     app.run(host='0.0.0.0', port=port)

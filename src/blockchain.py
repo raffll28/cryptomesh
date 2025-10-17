@@ -5,13 +5,28 @@ from urllib.parse import urlparse
 import requests
 
 class Blockchain:
-    def __init__(self):
+    def __init__(self, storage_path='blockchain.json'):
+        self.storage_path = storage_path
         self.chain = []
         self.current_transactions = []
         self.nodes = set()
 
-        # Cria o bloco gênese
-        self.new_block(previous_hash='1', proof=100)
+        self.load_chain()
+
+    def load_chain(self):
+        try:
+            with open(self.storage_path, 'r') as f:
+                self.chain = json.load(f)
+            if not self.chain:
+                # Se o arquivo estiver vazio, cria o bloco gênese
+                self.new_block(previous_hash='1', proof=100)
+        except (FileNotFoundError, json.JSONDecodeError):
+            # Se o arquivo não existir ou for inválido, cria o bloco gênese
+            self.new_block(previous_hash='1', proof=100)
+
+    def save_chain(self):
+        with open(self.storage_path, 'w') as f:
+            json.dump(self.chain, f, indent=2)
 
     def register_node(self, address):
         """
@@ -55,20 +70,24 @@ class Blockchain:
 
         # Pega e verifica as cadeias de todos os nós da nossa rede
         for node in neighbours:
-            response = requests.get(f'http://{node}/chain')
+            try:
+                response = requests.get(f'http://{node}/chain')
+                if response.status_code == 200:
+                    length = response.json()['length']
+                    chain = response.json()['chain']
 
-            if response.status_code == 200:
-                length = response.json()['length']
-                chain = response.json()['chain']
-
-                # Verifica se o comprimento é maior e se a cadeia é válida
-                if length > max_length and self.valid_chain(chain):
-                    max_length = length
-                    new_chain = chain
+                    # Verifica se o comprimento é maior e se a cadeia é válida
+                    if length > max_length and self.valid_chain(chain):
+                        max_length = length
+                        new_chain = chain
+            except requests.exceptions.ConnectionError:
+                # Ignora nós que não estão respondendo
+                pass
 
         # Substitui nossa cadeia se descobrirmos uma nova cadeia válida mais longa
         if new_chain:
             self.chain = new_chain
+            self.save_chain()
             return True
 
         return False
@@ -89,6 +108,7 @@ class Blockchain:
         self.current_transactions = []
 
         self.chain.append(block)
+        self.save_chain() # Salva a cadeia após adicionar um novo bloco
         return block
 
     def new_transaction(self, sender, recipient, amount):
@@ -131,8 +151,8 @@ class Blockchain:
     @staticmethod
     def valid_proof(last_proof, proof):
         """
-        Valida a prova: O hash(last_proof, proof) contém o prefixo '1010'?
+        Valida a prova: O hash(last_proof, proof) contém o prefixo '101'?
         """
         guess = f'{last_proof}{proof}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
-        return guess_hash[:4] == "1010"
+        return guess_hash[:3] == "101"
