@@ -3,6 +3,7 @@ import json
 import hashlib
 from urllib.parse import urlparse
 import requests
+from wallet import Wallet
 
 class Blockchain:
     def __init__(self, storage_path='blockchain.json'):
@@ -111,14 +112,34 @@ class Blockchain:
         self.save_chain() # Salva a cadeia após adicionar um novo bloco
         return block
 
-    def new_transaction(self, sender, recipient, amount):
+    def new_transaction(self, sender, recipient, amount, signature):
         """
-        Adiciona uma nova transação à lista de transações
+        Adiciona uma nova transação à lista de transações, com verificação de assinatura.
         """
+        if sender == "0":
+            # Transação de mineração, não precisa de assinatura
+            self.current_transactions.append({
+                'sender': sender,
+                'recipient': recipient,
+                'amount': amount,
+                'signature': signature
+            })
+            return self.last_block['index'] + 1
+
+        transaction = {
+            'sender': sender,
+            'recipient': recipient,
+            'amount': amount,
+        }
+
+        if not Wallet.verify(sender, transaction, signature):
+            return False
+
         self.current_transactions.append({
             'sender': sender,
             'recipient': recipient,
             'amount': amount,
+            'signature': signature
         })
 
         return self.last_block['index'] + 1

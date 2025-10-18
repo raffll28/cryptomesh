@@ -26,6 +26,7 @@ def mine():
         sender="0",
         recipient=node_identifier,
         amount=1,
+        signature=""
     )
 
     # Forja o novo Bloco, adicionando-o à cadeia
@@ -46,12 +47,15 @@ def new_transaction():
     values = request.get_json()
 
     # Verifica se os campos obrigatórios estão nos dados postados
-    required = ['sender', 'recipient', 'amount']
+    required = ['sender', 'recipient', 'amount', 'signature']
     if not all(k in values for k in required):
         return 'Valores faltando', 400
 
     # Cria uma nova transação
-    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'])
+    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'], values['signature'])
+
+    if not index:
+        return 'Assinatura da transação é inválida', 400
 
     response = {'message': f'A transação será adicionada ao Bloco {index}'}
     return jsonify(response), 201

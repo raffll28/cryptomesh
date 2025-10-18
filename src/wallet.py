@@ -4,11 +4,16 @@ from Crypto.Hash import SHA256
 import binascii
 
 class Wallet:
-    def __init__(self):
+    def __init__(self, private_key_hex=None):
         """
-        Cria uma nova carteira com um par de chaves RSA.
+        Cria uma nova carteira. Se uma chave privada em hexadecimal for fornecida,
+        a carteira será carregada a partir dela. Caso contrário, um novo par de chaves será gerado.
         """
-        self._private_key = RSA.generate(1024)
+        if private_key_hex:
+            self._private_key = RSA.import_key(binascii.unhexlify(private_key_hex))
+        else:
+            self._private_key = RSA.generate(1024)
+        
         self._public_key = self._private_key.publickey()
 
     @property
@@ -48,12 +53,3 @@ class Wallet:
             return True
         except (ValueError, TypeError):
             return False
-
-
-
-w = Wallet()
-print(w.private_key)
-print()
-print(w.public_key)
-
-
