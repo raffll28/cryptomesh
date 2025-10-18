@@ -30,7 +30,7 @@ O consenso no Bitcoin não acontece com um nó pedindo a cadeia dos outros (`/no
         *   `POST /blocks/receive`: Para um nó receber um bloco minerado por um par, validá-lo e adicioná-lo à sua própria cadeia.
         *   `POST /transactions/receive`: Para um nó receber uma transação de um par, validá-la e adicioná-la ao seu mempool.
 
-### 3. Implementar Ajuste de Dificuldade Dinâmico
+### 3. Implementar Ajuste de Dificuldade Dinâmico [Concluído]
 
 A dificuldade de mineração no Bitcoin se ajusta para manter o tempo médio de geração de blocos constante. Vamos implementar uma versão simplificada disso.
 

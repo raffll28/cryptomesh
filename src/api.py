@@ -18,8 +18,7 @@ blockchain = None
 def mine():
     # Executamos o algoritmo de prova de trabalho para obter a próxima prova...
     last_block = blockchain.last_block
-    last_proof = last_block['proof']
-    proof = blockchain.proof_of_work(last_proof)
+    proof = blockchain.proof_of_work(last_block)
 
     # Somos recompensados por encontrar a prova, adicionando uma transação.
     # O remetente é "0" para significar que esta é uma nova moeda.

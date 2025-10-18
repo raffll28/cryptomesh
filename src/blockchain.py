@@ -11,6 +11,9 @@ class Blockchain:
         self.chain = []
         self.mempool = []
         self.nodes = set()
+        self.difficulty = 4
+        self.DIFFICULTY_ADJUSTMENT_INTERVAL = 10
+        self.BLOCK_GENERATION_INTERVAL = 10 # in seconds
 
         self.load_chain()
 
@@ -50,7 +53,8 @@ class Blockchain:
                 return False
 
             # Verifica se a Prova de Trabalho é correta
-            if not self.valid_proof(last_block['proof'], block['proof']):
+            last_block_hash = self.hash(last_block)
+            if not self.valid_proof(last_block['proof'], block['proof'], last_block_hash):
                 return False
 
             last_block = block
@@ -109,6 +113,7 @@ class Blockchain:
         self.mempool = []
 
         self.chain.append(block)
+        self._adjust_difficulty()
         self.save_chain() # Salva a cadeia após adicionar um novo bloco
         return block
 
@@ -123,15 +128,35 @@ class Blockchain:
             return False
 
         # Verifica se a prova de trabalho é válida
-        if not self.valid_proof(previous_block['proof'], block['proof']):
+        if not self.valid_proof(previous_block['proof'], block['proof'], self.hash(previous_block)):
             return False
 
         # Limpa o mempool de transações que já estão no bloco recebido
         self.mempool = [tx for tx in self.mempool if tx not in block['transactions']]
 
         self.chain.append(block)
+        self._adjust_difficulty()
         self.save_chain()
         return True
+
+    def _adjust_difficulty(self):
+        """
+        Ajusta a dificuldade da mineração a cada DIFFICULTY_ADJUSTMENT_INTERVAL blocos.
+        """
+        # O bloco gênese não conta para o ajuste
+        if len(self.chain) % self.DIFFICULTY_ADJUSTMENT_INTERVAL != 0 or len(self.chain) == 0:
+            return
+
+        last_adjustment_block = self.chain[-self.DIFFICULTY_ADJUSTMENT_INTERVAL]
+        current_block = self.last_block
+
+        actual_time = current_block['timestamp'] - last_adjustment_block['timestamp']
+        expected_time = self.DIFFICULTY_ADJUSTMENT_INTERVAL * self.BLOCK_GENERATION_INTERVAL
+
+        if actual_time < expected_time / 2:
+            self.difficulty += 1
+        elif actual_time > expected_time * 2:
+            self.difficulty = max(1, self.difficulty - 1)
 
     def new_transaction(self, sender, recipient, amount, signature):
         """
@@ -178,23 +203,24 @@ class Blockchain:
     def last_block(self):
         return self.chain[-1]
 
-    def proof_of_work(self, last_proof):
+    def proof_of_work(self, last_block):
         """
         Prova de Trabalho simples:
-         - Encontre um número 'p' tal que o hash(pp') contenha 4 zeros à esquerda
+         - Encontre um número 'p' tal que o hash(pp') contenha 4 uns à esquerda
          - Onde p é a prova anterior, e p' é a nova prova
         """
+        last_proof = last_block['proof']
+        last_hash = self.hash(last_block)
         proof = 0
-        while self.valid_proof(last_proof, proof) is False:
+        while self.valid_proof(last_proof, proof, last_hash) is False:
             proof += 1
 
         return proof
 
-    @staticmethod
-    def valid_proof(last_proof, proof):
+    def valid_proof(self, last_proof, proof, last_hash):
         """
-        Valida a prova: O hash(last_proof, proof) contém o prefixo '101'?
+        Valida a prova: O hash(last_proof, proof, last_hash) contém a quantidade de uns à esquerda definida pela dificuldade?
         """
-        guess = f'{last_proof}{proof}'.encode()
+        guess = f'{last_proof}{proof}{last_hash}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
-        return guess_hash[:3] == "101"
+        return guess_hash[:self.difficulty] == '1' * self.difficulty
