@@ -9,7 +9,7 @@ class Blockchain:
     def __init__(self, storage_path='blockchain.json'):
         self.storage_path = storage_path
         self.chain = []
-        self.current_transactions = []
+        self.mempool = []
         self.nodes = set()
 
         self.load_chain()
@@ -100,13 +100,13 @@ class Blockchain:
         block = {
             'index': len(self.chain) + 1,
             'timestamp': time.time(),
-            'transactions': self.current_transactions,
+            'transactions': self.mempool,
             'proof': proof,
             'previous_hash': previous_hash or self.hash(self.chain[-1]),
         }
 
         # Reseta a lista de transações atuais
-        self.current_transactions = []
+        self.mempool = []
 
         self.chain.append(block)
         self.save_chain() # Salva a cadeia após adicionar um novo bloco
@@ -118,7 +118,7 @@ class Blockchain:
         """
         if sender == "0":
             # Transação de mineração, não precisa de assinatura
-            self.current_transactions.append({
+            self.mempool.append({
                 'sender': sender,
                 'recipient': recipient,
                 'amount': amount,
@@ -135,7 +135,7 @@ class Blockchain:
         if not Wallet.verify(sender, transaction, signature):
             return False
 
-        self.current_transactions.append({
+        self.mempool.append({
             'sender': sender,
             'recipient': recipient,
             'amount': amount,
