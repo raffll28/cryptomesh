@@ -18,7 +18,7 @@ Atualmente, as transações são adicionadas diretamente à lista `current_trans
     *   O endpoint `/transactions/new` adicionará novas transações ao `mempool`.
     *   Quando o endpoint `/mine` for chamado, o nó selecionará um conjunto de transações do `mempool` para incluir no novo bloco.
 
-### 2. Mudar do Modelo "Pull" para "Push" (Broadcast)
+### 2. Mudar do Modelo "Pull" para "Push" (Broadcast) [Concluído]
 
 O consenso no Bitcoin não acontece com um nó pedindo a cadeia dos outros (`/nodes/resolve`), mas sim com nós "empurrando" (transmitindo) informações novas para a rede.
 

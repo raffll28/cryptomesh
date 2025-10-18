@@ -3,6 +3,7 @@ from blockchain import Blockchain
 import json
 from uuid import uuid4
 from argparse import ArgumentParser
+import requests
 
 # Instancia o nosso nó
 app = Flask(__name__)
@@ -33,8 +34,16 @@ def mine():
     previous_hash = blockchain.hash(last_block)
     block = blockchain.new_block(proof, previous_hash)
 
+    # Transmite o novo bloco para todos os nós da rede
+    for node in blockchain.nodes:
+        try:
+            requests.post(f'http://{node}/blocks/receive', json=block)
+        except requests.exceptions.ConnectionError:
+            # Ignora nós que não estão respondendo
+            pass
+
     response = {
-        'message': "Novo bloco forjado",
+        'message': "Novo bloco forjado e transmitido",
         'index': block['index'],
         'transactions': block['transactions'],
         'proof': block['proof'],
@@ -57,8 +66,44 @@ def new_transaction():
     if not index:
         return 'Assinatura da transação é inválida', 400
 
-    response = {'message': f'A transação será adicionada ao Bloco {index}'}
+    # Transmite a nova transação para todos os nós da rede
+    for node in blockchain.nodes:
+        try:
+            requests.post(f'http://{node}/transactions/receive', json=values)
+        except requests.exceptions.ConnectionError:
+            # Ignora nós que não estão respondendo
+            pass
+
+    response = {'message': f'Transação adicionada e transmitida. Será incluída no Bloco {index}'}
     return jsonify(response), 201
+
+@app.route('/transactions/receive', methods=['POST'])
+def receive_transaction():
+    values = request.get_json()
+    # Verifica se os campos obrigatórios estão nos dados postados
+    required = ['sender', 'recipient', 'amount', 'signature']
+    if not all(k in values for k in required):
+        return 'Valores faltando na transação recebida', 400
+
+    # Adiciona a transação recebida ao mempool
+    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'], values['signature'])
+
+    if not index:
+        return 'Transação recebida inválida', 400
+
+    response = {'message': f'Transação recebida e adicionada ao Bloco {index}'}
+    return jsonify(response), 201
+
+@app.route('/blocks/receive', methods=['POST'])
+def receive_block():
+    block = request.get_json()
+    if not block:
+        return 'Bloco faltando', 400
+
+    if blockchain.add_block(block):
+        return jsonify({'message': 'Bloco recebido e adicionado à cadeia'}), 201
+    
+    return 'Bloco recebido inválido', 400
 
 @app.route('/chain', methods=['GET'])
 def full_chain():

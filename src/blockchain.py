@@ -112,6 +112,27 @@ class Blockchain:
         self.save_chain() # Salva a cadeia após adicionar um novo bloco
         return block
 
+    def add_block(self, block):
+        """
+        Adiciona um bloco recebido de outro nó à cadeia, após validação.
+        """
+        previous_block = self.last_block
+
+        # Verifica se o previous_hash do bloco recebido é o hash do último bloco da nossa cadeia
+        if block['previous_hash'] != self.hash(previous_block):
+            return False
+
+        # Verifica se a prova de trabalho é válida
+        if not self.valid_proof(previous_block['proof'], block['proof']):
+            return False
+
+        # Limpa o mempool de transações que já estão no bloco recebido
+        self.mempool = [tx for tx in self.mempool if tx not in block['transactions']]
+
+        self.chain.append(block)
+        self.save_chain()
+        return True
+
     def new_transaction(self, sender, recipient, amount, signature):
         """
         Adiciona uma nova transação à lista de transações, com verificação de assinatura.
