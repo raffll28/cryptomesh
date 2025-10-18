@@ -47,6 +47,27 @@ def send(args):
     except requests.exceptions.RequestException as e:
         print(f"Erro ao enviar a transação: {e}")
 
+def mine(args):
+    """Minera um novo bloco na blockchain."""
+    try:
+        response = requests.get(f"http://{args.host}:{args.port}/mine")
+        response.raise_for_status()
+        print("Bloco minerado com sucesso!")
+        print(json.dumps(response.json(), indent=2))
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao minerar o bloco: {e}")
+
+def print_chain(args):
+    """Imprime a blockchain completa."""
+    try:
+        response = requests.get(f"http://{args.host}:{args.port}/chain")
+        response.raise_for_status()
+        print("Blockchain atual:")
+        print(json.dumps(response.json(), indent=2))
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao obter a blockchain: {e}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="CryptoMesh: uma CLI para interagir com a blockchain.")
     subparsers = parser.add_subparsers(dest='command', help='Comandos disponíveis')
@@ -64,7 +85,17 @@ def main():
     parser_send.add_argument('--port', default=5000, type=int, help='A porta do nó da blockchain.')
     parser_send.set_defaults(func=send)
 
-    # TODO: Adicionar outros comandos (mine, print-chain)
+    # Comando para minerar um bloco
+    parser_mine = subparsers.add_parser('mine', help='Minera um novo bloco.')
+    parser_mine.add_argument('--host', default='localhost', help='O host do nó da blockchain.')
+    parser_mine.add_argument('--port', default=5000, type=int, help='A porta do nó da blockchain.')
+    parser_mine.set_defaults(func=mine)
+
+    # Comando para imprimir a blockchain
+    parser_print_chain = subparsers.add_parser('print-chain', help='Imprime a blockchain completa.')
+    parser_print_chain.add_argument('--host', default='localhost', help='O host do nó da blockchain.')
+    parser_print_chain.add_argument('--port', default=5000, type=int, help='A porta do nó da blockchain.')
+    parser_print_chain.set_defaults(func=print_chain)
 
     args = parser.parse_args()
 
