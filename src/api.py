@@ -58,8 +58,11 @@ def new_transaction():
 
     fee = values.get('fee', 0.0)
 
-    # Cria uma nova transação UTXO usando a carteira do nó
-    tx = blockchain.new_utxo_transaction(node_wallet, values['recipient_address'], values['amount'], fee)
+    try:
+        # Cria uma nova transação UTXO usando a carteira do nó
+        tx = blockchain.new_utxo_transaction(node_wallet, values['recipient_address'], values['amount'], fee)
+    except ValueError as e:
+        return str(e), 400
 
     if tx is None:
         return 'Saldo insuficiente para a transação', 400
@@ -153,12 +156,18 @@ def get_balance(address):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on')
+    parser.add_argument('--difficulty-interval', default=10, type=int, help='Intervalo de ajuste de dificuldade')
+    parser.add_argument('--block-time', default=10, type=int, help='Tempo de geração de bloco em segundos')
     args = parser.parse_args()
     port = args.port
 
     # Instancia a blockchain com um arquivo de storage específico para esta porta
     storage_file = f'blockchain-{port}.json'
-    blockchain = Blockchain(storage_path=storage_file)
+    blockchain = Blockchain(
+        storage_path=storage_file,
+        difficulty_adjustment_interval=args.difficulty_interval,
+        block_generation_interval=args.block_time
+    )
 
     # Cria a carteira para este nó, usando a porta como identificador
     node_wallet = Wallet(node_id=port)

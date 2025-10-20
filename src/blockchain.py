@@ -10,14 +10,14 @@ from transaction import Transaction, TxInput, TxOutput
 GENESIS_ADDRESS = "CryptoMesh_Genesis_Address"
 
 class Blockchain:
-    def __init__(self, storage_path='blockchain.json'):
+    def __init__(self, storage_path='blockchain.json', difficulty_adjustment_interval=10, block_generation_interval=10):
         self.storage_path = storage_path
         self.chain = []
         self.mempool = []
         self.nodes = set()
         self.difficulty = 4
-        self.DIFFICULTY_ADJUSTMENT_INTERVAL = 10
-        self.BLOCK_GENERATION_INTERVAL = 10 # in seconds
+        self.difficulty_adjustment_interval = difficulty_adjustment_interval
+        self.block_generation_interval = block_generation_interval # in seconds
         self.utxo = {}
 
         self.load_chain()
@@ -201,14 +201,14 @@ class Blockchain:
         Ajusta a dificuldade da mineração a cada DIFFICULTY_ADJUSTMENT_INTERVAL blocos.
         """
         # O bloco gênese não conta para o ajuste
-        if len(self.chain) % self.DIFFICULTY_ADJUSTMENT_INTERVAL != 0 or len(self.chain) == 0:
+        if len(self.chain) % self.difficulty_adjustment_interval != 0 or len(self.chain) == 0:
             return
 
-        last_adjustment_block = self.chain[-self.DIFFICULTY_ADJUSTMENT_INTERVAL]
+        last_adjustment_block = self.chain[-self.difficulty_adjustment_interval]
         current_block = self.last_block
 
         actual_time = current_block['timestamp'] - last_adjustment_block['timestamp']
-        expected_time = self.DIFFICULTY_ADJUSTMENT_INTERVAL * self.BLOCK_GENERATION_INTERVAL
+        expected_time = self.difficulty_adjustment_interval * self.block_generation_interval
 
         if actual_time < expected_time / 2:
             self.difficulty += 1
@@ -227,6 +227,9 @@ class Blockchain:
         return accumulated_amount, spendable_outputs
 
     def new_utxo_transaction(self, wallet, recipient_address, amount, fee=0.0):
+        if not Wallet.is_valid_address(recipient_address):
+            raise ValueError("Endereço do destinatário inválido")
+
         total_amount_needed = amount + fee
         accumulated, spendable_utxo_keys = self._find_spendable_outputs(wallet.public_key, total_amount_needed)
 

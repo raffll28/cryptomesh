@@ -99,5 +99,22 @@ class TestBlockchain(unittest.TestCase):
         chain_response = requests.get(f"{self.base_url_1}/chain")
         self.assertEqual(len(chain_response.json()['chain']), 4) # 1 genesis + 3 minerados no nó 2
 
+    def test_07_insufficient_balance(self):
+        """Testa o envio de uma transação com saldo insuficiente."""
+        with open("wallet-user_wallet.json", 'r') as f:
+            user_pub_key = f.readline().strip()
+
+        payload = {"recipient_address": user_pub_key, "amount": 9999}
+        response = requests.post(f"{self.base_url_1}/transactions/new", json=payload)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Saldo insuficiente", response.text)
+
+    def test_08_invalid_address(self):
+        """Testa o envio de uma transação para um endereço inválido."""
+        payload = {"recipient_address": "invalid_address", "amount": 0.1}
+        response = requests.post(f"{self.base_url_1}/transactions/new", json=payload)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Endereço do destinatário inválido", response.text)
+
 if __name__ == '__main__':
     unittest.main()

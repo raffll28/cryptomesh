@@ -76,3 +76,12 @@ class Wallet:
             return True
         except (ValueError, TypeError):
             return False
+
+    @staticmethod
+    def is_valid_address(address):
+        """Verifica se um endereço (chave pública) é válido."""
+        try:
+            RSA.import_key(binascii.unhexlify(address))
+            return True
+        except (ValueError, TypeError, binascii.Error):
+            return False
