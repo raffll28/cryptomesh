@@ -320,11 +320,17 @@ class Blockchain:
     def last_block(self):
         return self.chain[-1]
 
+    def get_target(self):
+        """Calcula o alvo (target) para a mineração com base na dificuldade."""
+        # O alvo é um número de 256 bits, representado como um hexadecimal
+        # A dificuldade representa o número de bits zerados no início do hash
+        # Ex: Dificuldade 4 significa que o hash deve começar com 0000...
+        target = 2**(256 - self.difficulty)
+        return f'{target:064x}'
+
     def proof_of_work(self, last_block):
         """
-        Prova de Trabalho simples:
-         - Encontre um número 'p' tal que o hash(pp') contenha 4 uns à esquerda
-         - Onde p é a prova anterior, e p' é a nova prova
+        Encontra uma prova de trabalho que satisfaça o alvo de dificuldade.
         """
         last_proof = last_block['proof']
         last_hash = self.hash(last_block)
@@ -336,8 +342,8 @@ class Blockchain:
 
     def valid_proof(self, last_proof, proof, last_hash):
         """
-        Valida a prova: O hash(last_proof, proof, last_hash) contém a quantidade de uns à esquerda definida pela dificuldade?
+        Valida a prova: o hash(last_proof, proof, last_hash) é menor que o alvo?
         """
         guess = f'{last_proof}{proof}{last_hash}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
-        return guess_hash[:self.difficulty] == '1' * self.difficulty
+        return guess_hash < self.get_target()
