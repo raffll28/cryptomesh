@@ -4,7 +4,6 @@ __pycache__/
 .env
 
 # Ignorar arquivos de desenvolvimento do Gemini
-#GEMINI.md
 
 # Ignorar pastas de ambiente virtual do Python
 venv/

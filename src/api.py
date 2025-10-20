@@ -2,7 +2,6 @@ from flask import Flask, jsonify, request
 from blockchain import Blockchain
 from wallet import Wallet
 import json
-from uuid import uuid4
 from argparse import ArgumentParser
 import requests
 
