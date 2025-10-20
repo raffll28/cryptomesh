@@ -1,52 +1,45 @@
 import json
 import hashlib
+from dataclasses import dataclass, asdict
+from typing import List
 
+@dataclass(frozen=True)
 class TxOutput:
-    def __init__(self, recipient_address, amount):
-        self.recipient_address = recipient_address
-        self.amount = amount
+    recipient_address: str
+    amount: float
 
     def to_dict(self):
-        return {
-            'recipient_address': self.recipient_address,
-            'amount': self.amount,
-        }
+        return asdict(self)
 
     @classmethod
     def from_dict(cls, data):
         return cls(data['recipient_address'], data['amount'])
 
+@dataclass(frozen=True)
 class TxInput:
-    def __init__(self, transaction_id, output_index):
-        self.transaction_id = transaction_id
-        self.output_index = output_index
-        self.signature = ""
+    transaction_id: str
+    output_index: int
+    signature: str = ""
 
     def to_dict(self):
-        return {
-            'transaction_id': self.transaction_id,
-            'output_index': self.output_index,
-            'signature': self.signature,
-        }
+        return asdict(self)
 
     @classmethod
     def from_dict(cls, data):
-        instance = cls(data['transaction_id'], data['output_index'])
-        instance.signature = data.get('signature', '')
-        return instance
+        return cls(data['transaction_id'], data['output_index'], data.get('signature', ''))
 
+@dataclass(frozen=True)
 class Transaction:
-    def __init__(self, inputs, outputs):
-        # inputs is a list of TxInput objects
-        self.inputs = inputs
-        # outputs is a list of TxOutput objects
-        self.outputs = outputs
-        self.id = self.calculate_hash()
+    inputs: List[TxInput]
+    outputs: List[TxOutput]
+    id: str
+
+    def __init__(self, inputs: List[TxInput], outputs: List[TxOutput]):
+        object.__setattr__(self, 'inputs', inputs)
+        object.__setattr__(self, 'outputs', outputs)
+        object.__setattr__(self, 'id', self.calculate_hash())
 
     def to_dict(self):
-        """
-        Serializes the transaction to a dictionary.
-        """
         return {
             'inputs': [i.to_dict() for i in self.inputs],
             'outputs': [o.to_dict() for o in self.outputs],
@@ -55,18 +48,12 @@ class Transaction:
 
     def calculate_hash(self):
         """
-        Calculates the hash (ID) of the transaction.
-        The hash is calculated over the inputs and outputs, without signatures.
+        Calcula o hash (ID) da transação.
+        O hash é calculado sobre as entradas (sem assinatura) e saídas.
         """
-        tx_data_for_hashing = {
-            'inputs': [
-                {
-                    'transaction_id': i.transaction_id,
-                    'output_index': i.output_index,
-                    'signature': ''
-                } for i in self.inputs
-            ],
+        tx_data = {
+            'inputs': [{k: v for k, v in i.to_dict().items() if k != 'signature'} for i in self.inputs],
             'outputs': [o.to_dict() for o in self.outputs],
         }
-        tx_string = json.dumps(tx_data_for_hashing, sort_keys=True).encode()
+        tx_string = json.dumps(tx_data, sort_keys=True).encode()
         return hashlib.sha256(tx_string).hexdigest()

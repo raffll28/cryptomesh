@@ -236,11 +236,14 @@ class Blockchain:
             # Troco
             outputs.append(TxOutput(wallet.public_key, change))
 
-        tx = Transaction(inputs, outputs)
-        self.sign_transaction(wallet, tx)
+        # A transação é criada sem assinaturas primeiro
+        unsigned_tx = Transaction(inputs, outputs)
+        
+        # Agora, a transação é assinada
+        signed_tx = self.sign_transaction(wallet, unsigned_tx)
 
-        self.mempool.append(tx.to_dict())
-        return tx
+        self.mempool.append(signed_tx.to_dict())
+        return signed_tx
 
     def get_transaction_fee(self, tx_dict):
         """Calcula a taxa de uma transação."""
@@ -272,10 +275,15 @@ class Blockchain:
         return tx
 
     def sign_transaction(self, wallet, tx):
+        """Assina uma transação e retorna uma nova transação com as assinaturas."""
         tx_hash = tx.calculate_hash()
         signature = wallet.sign(wallet.private_key, tx_hash)
-        for input_tx in tx.inputs:
-            input_tx.signature = signature
+
+        signed_inputs = []
+        for i in tx.inputs:
+            signed_inputs.append(TxInput(i.transaction_id, i.output_index, signature))
+
+        return Transaction(signed_inputs, tx.outputs)
 
     def verify_transaction(self, tx_dict):
         """Verifica se uma transação é válida."""
