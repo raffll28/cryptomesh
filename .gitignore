@@ -9,5 +9,6 @@ __pycache__/
 venv/
 .venv/
 
-# Ignorar arquivos de dados da blockchain
+# Ignorar arquivos de dados da blockchain e carteiras
 blockchain-*.json
+wallet-*.json

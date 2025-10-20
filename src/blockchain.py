@@ -76,9 +76,17 @@ class Blockchain:
     def register_node(self, address):
         """
         Adiciona um novo nó à lista de nós
+
+        :param address: Endereço do nó. Ex: 'http://192.168.0.5:5000'
         """
         parsed_url = urlparse(address)
-        self.nodes.add(parsed_url.netloc)
+        if parsed_url.netloc:
+            self.nodes.add(parsed_url.netloc)
+        elif parsed_url.path:
+            # Aceita um URL sem esquema, ex: '192.168.0.5:5000'
+            self.nodes.add(parsed_url.path)
+        else:
+            raise ValueError('URL inválido')
 
     def valid_chain(self, chain):
         """
