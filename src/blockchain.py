@@ -232,12 +232,30 @@ class Blockchain:
         self.mempool.append(tx.to_dict())
         return tx
 
-    def new_coinbase_transaction(self, recipient_address):
+    def get_transaction_fee(self, tx_dict):
+        """Calcula a taxa de uma transação."""
+        # Ignora transações coinbase
+        if not tx_dict['inputs'] or tx_dict['inputs'][0]['transaction_id'] == '0':
+            return 0.0
+
+        total_input_value = 0
+        for input_tx_dict in tx_dict['inputs']:
+            utxo_key = f"{input_tx_dict['transaction_id']}:{input_tx_dict['output_index']}"
+            # Assume que a transação já foi verificada, então a UTXO existe
+            if utxo_key in self.utxo:
+                total_input_value += self.utxo[utxo_key]['amount']
+
+        total_output_value = sum(output['amount'] for output in tx_dict['outputs'])
+        
+        return total_input_value - total_output_value
+
+    def new_coinbase_transaction(self, recipient_address, fees=0.0):
         """Cria a transação de mineração (coinbase)."""
         # A entrada da transação coinbase é especial
         coinbase_input = TxInput(transaction_id='0', output_index=-1)
-        # A recompensa de mineração é 1
-        coinbase_output = TxOutput(recipient_address, 1)
+        # A recompensa de mineração é 1 + taxas
+        block_reward = 1.0 + fees
+        coinbase_output = TxOutput(recipient_address, block_reward)
         
         tx = Transaction(inputs=[coinbase_input], outputs=[coinbase_output])
         self.mempool.append(tx.to_dict())

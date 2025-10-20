@@ -25,8 +25,11 @@ def mine():
     last_block = blockchain.last_block
     proof = blockchain.proof_of_work(last_block)
 
-    # Adiciona a transação de recompensa (coinbase)
-    blockchain.new_coinbase_transaction(node_identifier)
+    # Calcula o total de taxas das transações no mempool
+    total_fees = sum(blockchain.get_transaction_fee(tx) for tx in blockchain.mempool)
+
+    # Adiciona a transação de recompensa (coinbase), incluindo as taxas
+    blockchain.new_coinbase_transaction(node_identifier, total_fees)
 
     # Forja o novo Bloco, adicionando-o à cadeia
     previous_hash = blockchain.hash(last_block)

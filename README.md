@@ -115,7 +115,7 @@ Para introduzir um sistema de taxas de transação (transaction fees) similar ao
     2.  **Atualizar a API:** O endpoint `/transactions/new` em `src/api.py` precisará aceitar um campo `fee` no corpo da requisição.
     3.  **Ajustar o Core:** O método `new_utxo_transaction` em `src/blockchain.py` será o principal afetado. Ele precisará garantir que `valor_total_dos_inputs >= valor_a_enviar + taxa`. O valor do troco será `valor_total_dos_inputs - valor_a_enviar - taxa`.
 
-#### **Passo 2: Coletar as Taxas durante a Mineração**
+#### **Passo 2: Coletar as Taxas durante a Mineração [Concluído]**
 
 *   **Objetivo:** Recompensar o minerador com a soma das taxas de todas as transações que ele incluir em um novo bloco.
 *   **Ações:**
