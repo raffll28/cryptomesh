@@ -15,23 +15,23 @@ A arquitetura consiste em:
 *   `blockchain.py`: A classe principal que implementa a lógica da blockchain.
 *   `api.py`: Uma API Flask que permite a interação com a blockchain (mineração, novas transações, etc.).
 *   `wallet.py`: Uma classe que gerencia carteiras com chaves pública e privada.
-*   `main.py`: Um script de exemplo para mineração de um bloco.
+*   `main.py`: Uma interface de linha de comando (CLI) para interagir com a blockchain.
 
 ## Construindo e Executando
 
 ### Dependências
 
-O projeto não possui um arquivo `requirements.txt`, mas as seguintes dependências podem ser inferidas do código-fonte:
-
-*   `flask`
-*   `requests`
-*   `pycryptodome`
-
-Você pode instalá-las usando `pip`:
+O projeto utiliza um arquivo `requirements.txt` para gerenciar suas dependências. Para instalar as dependências, execute:
 
 ```bash
-pip install flask requests pycryptodome
+pip install -r requirements.txt
 ```
+
+As principais dependências são:
+
+*   `flask`: Para a API RESTful.
+*   `requests`: Para comunicação entre os nós.
+*   `pycryptodome`: Para criptografia.
 
 ### Executando a API
 
@@ -54,13 +54,43 @@ python src/api.py -p 5001
 *   `GET /chain`: Retorna a blockchain completa.
 *   `POST /nodes/register`: Registra um novo nó na rede.
 *   `GET /nodes/resolve`: Executa o algoritmo de consenso para resolver conflitos.
+*   `GET /balance/<address>`: Retorna o saldo de um endereço.
 
-### Executando o script de mineração de exemplo
+### Utilizando a CLI (`main.py`)
 
-O arquivo `main.py` é um script simples que minera um bloco e o imprime no console. Para executá-lo:
+O arquivo `main.py` é uma interface de linha de comando que permite interagir com um nó da blockchain.
+
+**Comandos disponíveis:**
+
+*   `create-wallet`: Cria uma nova carteira com um par de chaves pública/privada.
+    ```bash
+    python src/main.py create-wallet
+    ```
+
+*   `send`: Envia moedas da carteira do nó para outro endereço.
+    ```bash
+    python src/main.py send <ENDEREÇO_DESTINATÁRIO> <QUANTIA> --fee <TAXA>
+    ```
+
+*   `mine`: Solicita ao nó que minere um novo bloco.
+    ```bash
+    python src/main.py mine
+    ```
+
+*   `print-chain`: Exibe a cadeia de blocos completa do nó.
+    ```bash
+    python src/main.py print-chain
+    ```
+
+*   `balance`: Consulta o saldo de um endereço específico.
+    ```bash
+    python src/main.py balance <ENDEREÇO>
+    ```
+
+Você pode especificar o host e a porta do nó para cada comando (o padrão é `localhost:5000`), por exemplo:
 
 ```bash
-python src/main.py
+python src/main.py mine --host localhost --port 5001
 ```
 
 ## Convenções de Desenvolvimento
