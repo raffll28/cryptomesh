@@ -1,111 +1,132 @@
-import argparse
 import json
 import requests
+import inquirer
 from wallet import Wallet
 
-def create_wallet(args):
-    """Cria uma nova carteira e a salva em um arquivo."""
-    # Se um node_id não for fornecido, usa um nome de arquivo genérico
-    node_id = args.node_id if args.node_id else 'user_wallet'
-    w = Wallet(node_id=node_id)
-    w.save_keys() # As chaves são criadas e salvas no __init__ se não existirem
-    print(f"Carteira '{w.wallet_file}' criada/carregada com sucesso!")
-    print(f"Chave Pública (Endereço): {w.public_key}")
-    # A chave privada não será mais impressa por segurança
+# --- Funções de Interação com a API ---
 
-def send(args):
-    """Envia moedas para outro endereço a partir da carteira do nó."""
+def get_balance(host, port, address):
+    try:
+        response = requests.get(f"http://{host}:{port}/balance/{address}")
+        response.raise_for_status()
+        data = response.json()
+        print(f"\nSaldo do endereço {data['address']}: {data['balance']}\n")
+    except requests.exceptions.RequestException as e:
+        print(f"\nErro ao consultar o saldo: {e}\n")
+
+def send_transaction(host, port, pubkey, amount, fee):
     payload = {
-        'recipient_address': args.pubkey,
-        'amount': args.amount,
-        'fee': args.fee,
+        'recipient_address': pubkey,
+        'amount': amount,
+        'fee': fee,
     }
-
     try:
-        # Envia a transação para o nó da blockchain
-        response = requests.post(f"http://{args.host}:{args.port}/transactions/new", json=payload)
-        response.raise_for_status()  # Lança uma exceção para respostas de erro (4xx ou 5xx)
-        
-        print("Requisição de transação enviada com sucesso!")
-        print(json.dumps(response.json(), indent=2))
-
-    except requests.exceptions.RequestException as e:
-        print(f"Erro ao enviar a requisição de transação: {e}")
-
-def mine(args):
-    """Minera um novo bloco na blockchain."""
-    try:
-        response = requests.get(f"http://{args.host}:{args.port}/mine")
+        response = requests.post(f"http://{host}:{port}/transactions/new", json=payload)
         response.raise_for_status()
-        print("Bloco minerado com sucesso!")
-        print(json.dumps(response.json(), indent=2))
+        print("\nRequisição de transação enviada com sucesso!")
+        print(json.dumps(response.json(), indent=2) + '\n')
     except requests.exceptions.RequestException as e:
-        print(f"Erro ao minerar o bloco: {e}")
+        print(f"\nErro ao enviar a requisição de transação: {e}\n")
 
-def print_chain(args):
-    """Imprime a blockchain completa."""
+def mine_block(host, port):
     try:
-        response = requests.get(f"http://{args.host}:{args.port}/chain")
+        response = requests.get(f"http://{host}:{port}/mine")
         response.raise_for_status()
-        print("Blockchain atual:")
-        print(json.dumps(response.json(), indent=2))
+        print("\nBloco minerado com sucesso!")
+        print(json.dumps(response.json(), indent=2) + '\n')
     except requests.exceptions.RequestException as e:
-        print(f"Erro ao obter a blockchain: {e}")
+        print(f"\nErro ao minerar o bloco: {e}\n")
 
-def balance(args):
-    """Consulta o saldo de um endereço."""
+def print_chain(host, port):
     try:
-        response = requests.get(f"http://{args.host}:{args.port}/balance/{args.address}")
+        response = requests.get(f"http://{host}:{port}/chain")
         response.raise_for_status()
-        print("Saldo consultado com sucesso!")
-        print(json.dumps(response.json(), indent=2))
+        print("\nBlockchain atual:")
+        print(json.dumps(response.json(), indent=2) + '\n')
     except requests.exceptions.RequestException as e:
-        print(f"Erro ao consultar o saldo: {e}")
+        print(f"\nErro ao obter a blockchain: {e}\n")
 
+# --- Funções da CLI Interativa ---
+
+def create_wallet_cli():
+    questions = [
+        inquirer.Text('node_id', message="Digite um nome para a carteira (deixe em branco para 'user_wallet')"),
+    ]
+    answers = inquirer.prompt(questions)
+    node_id = answers['node_id'] if answers['node_id'] else 'user_wallet'
+    w = Wallet(node_id=node_id)
+    print(f"\nCarteira '{w.wallet_file}' criada/carregada com sucesso!")
+    print(f"Chave Pública (Endereço): {w.public_key}\n")
+
+def get_balance_cli(default_host, default_port):
+    questions = [
+        inquirer.Text('address', message="Endereço da carteira a ser consultado"),
+        inquirer.Text('host', message="Host do nó", default=default_host),
+        inquirer.Text('port', message="Porta do nó", default=str(default_port)),
+    ]
+    answers = inquirer.prompt(questions)
+    get_balance(answers['host'], int(answers['port']), answers['address'])
+
+def send_cli(default_host, default_port):
+    questions = [
+        inquirer.Text('pubkey', message="Chave pública (endereço) do destinatário"),
+        inquirer.Text('amount', message="Quantidade a ser enviada"),
+        inquirer.Text('fee', message="Taxa de transação", default='0.0'),
+        inquirer.Text('host', message="Host do nó", default=default_host),
+        inquirer.Text('port', message="Porta do nó", default=str(default_port)),
+    ]
+    answers = inquirer.prompt(questions)
+    send_transaction(answers['host'], int(answers['port']), answers['pubkey'], float(answers['amount']), float(answers['fee']))
+
+def mine_cli(default_host, default_port):
+    questions = [
+        inquirer.Text('host', message="Host do nó", default=default_host),
+        inquirer.Text('port', message="Porta do nó", default=str(default_port)),
+    ]
+    answers = inquirer.prompt(questions)
+    mine_block(answers['host'], int(answers['port']))
+
+def print_chain_cli(default_host, default_port):
+    questions = [
+        inquirer.Text('host', message="Host do nó", default=default_host),
+        inquirer.Text('port', message="Porta do nó", default=str(default_port)),
+    ]
+    answers = inquirer.prompt(questions)
+    print_chain(answers['host'], int(answers['port']))
 
 def main():
-    parser = argparse.ArgumentParser(description="CryptoMesh: uma CLI para interagir com a blockchain.")
-    subparsers = parser.add_subparsers(dest='command', help='Comandos disponíveis')
+    default_host = 'localhost'
+    default_port = 5000
 
-    # Comando para criar uma carteira
-    parser_create_wallet = subparsers.add_parser('create-wallet', help='Cria ou carrega uma carteira.')
-    parser_create_wallet.add_argument('--node-id', help='O ID do nó para o qual a carteira será criada (opcional).')
-    parser_create_wallet.set_defaults(func=create_wallet)
+    while True:
+        questions = [
+            inquirer.List('command',
+                          message="O que você gostaria de fazer?",
+                          choices=[
+                              'Criar/Carregar uma carteira',
+                              'Consultar saldo',
+                              'Enviar moedas',
+                              'Minerar um bloco',
+                              'Imprimir a blockchain',
+                              'Sair'
+                          ]),
+        ]
+        answers = inquirer.prompt(questions)
 
-    # Comando para enviar moedas
-    parser_send = subparsers.add_parser('send', help='Envia moedas para outro endereço a partir da carteira do nó.')
-    parser_send.add_argument('pubkey', help='A chave pública (endereço) do destinatário.')
-    parser_send.add_argument('amount', type=float, help='A quantidade de moedas a serem enviadas.')
-    parser_send.add_argument('--fee', type=float, default=0.0, help='Taxa de transação opcional.')
-    parser_send.add_argument('--host', default='localhost', help='O host do nó da blockchain.')
-    parser_send.add_argument('--port', default=5000, type=int, help='A porta do nó da blockchain.')
-    parser_send.set_defaults(func=send)
+        command = answers['command']
 
-    # Comando para minerar um bloco
-    parser_mine = subparsers.add_parser('mine', help='Minera um novo bloco.')
-    parser_mine.add_argument('--host', default='localhost', help='O host do nó da blockchain.')
-    parser_mine.add_argument('--port', default=5000, type=int, help='A porta do nó da blockchain.')
-    parser_mine.set_defaults(func=mine)
-
-    # Comando para imprimir a blockchain
-    parser_print_chain = subparsers.add_parser('print-chain', help='Imprime a blockchain completa.')
-    parser_print_chain.add_argument('--host', default='localhost', help='O host do nó da blockchain.')
-    parser_print_chain.add_argument('--port', default=5000, type=int, help='A porta do nó da blockchain.')
-    parser_print_chain.set_defaults(func=print_chain)
-
-    # Comando para consultar o saldo
-    parser_balance = subparsers.add_parser('balance', help='Consulta o saldo de um endereço.')
-    parser_balance.add_argument('address', help='O endereço da carteira a ser consultado.')
-    parser_balance.add_argument('--host', default='localhost', help='O host do nó da blockchain.')
-    parser_balance.add_argument('--port', default=5000, type=int, help='A porta do nó da blockchain.')
-    parser_balance.set_defaults(func=balance)
-
-    args = parser.parse_args()
-
-    if hasattr(args, 'func'):
-        args.func(args)
-    else:
-        parser.print_help()
+        if command == 'Criar/Carregar uma carteira':
+            create_wallet_cli()
+        elif command == 'Consultar saldo':
+            get_balance_cli(default_host, default_port)
+        elif command == 'Enviar moedas':
+            send_cli(default_host, default_port)
+        elif command == 'Minerar um bloco':
+            mine_cli(default_host, default_port)
+        elif command == 'Imprimir a blockchain':
+            print_chain_cli(default_host, default_port)
+        elif command == 'Sair':
+            break
 
 if __name__ == '__main__':
     main()
