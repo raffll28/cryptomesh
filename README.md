@@ -14,7 +14,7 @@ Uma implementação de uma blockchain simples para fins educacionais.
     *   Remover a necessidade de fornecer uma chave privada no lado do cliente para essa operação.
     *   Corrigir a função `create-wallet` que não estava gerando chaves.
 
-### 2. Adicionar endpoint de saldo na API
+### 2. Adicionar endpoint de saldo na API [Concluído]
 
 *   **Objetivo:** Permitir a consulta de saldo de qualquer endereço.
 *   **Passos:**

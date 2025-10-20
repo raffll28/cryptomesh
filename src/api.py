@@ -141,6 +141,15 @@ def consensus():
 
     return jsonify(response), 200
 
+@app.route('/balance/<address>', methods=['GET'])
+def get_balance(address):
+    balance = blockchain.get_balance(address)
+    response = {
+        'address': address,
+        'balance': balance,
+    }
+    return jsonify(response), 200
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on')

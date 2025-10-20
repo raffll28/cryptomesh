@@ -39,6 +39,14 @@ class Blockchain:
         for block in self.chain:
             self._update_utxo_set(block)
 
+    def get_balance(self, address):
+        """Calcula e retorna o saldo de um endereço."""
+        balance = 0
+        for utxo_output in self.utxo.values():
+            if utxo_output['recipient_address'] == address:
+                balance += utxo_output['amount']
+        return balance
+
     def _update_utxo_set(self, block):
         for tx in block['transactions']:
             # Adiciona as novas saídas
