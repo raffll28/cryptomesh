@@ -49,6 +49,16 @@ def print_chain(args):
     except requests.exceptions.RequestException as e:
         print(f"Erro ao obter a blockchain: {e}")
 
+def balance(args):
+    """Consulta o saldo de um endereço."""
+    try:
+        response = requests.get(f"http://{args.host}:{args.port}/balance/{args.address}")
+        response.raise_for_status()
+        print("Saldo consultado com sucesso!")
+        print(json.dumps(response.json(), indent=2))
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao consultar o saldo: {e}")
+
 
 def main():
     parser = argparse.ArgumentParser(description="CryptoMesh: uma CLI para interagir com a blockchain.")
@@ -77,6 +87,13 @@ def main():
     parser_print_chain.add_argument('--host', default='localhost', help='O host do nó da blockchain.')
     parser_print_chain.add_argument('--port', default=5000, type=int, help='A porta do nó da blockchain.')
     parser_print_chain.set_defaults(func=print_chain)
+
+    # Comando para consultar o saldo
+    parser_balance = subparsers.add_parser('balance', help='Consulta o saldo de um endereço.')
+    parser_balance.add_argument('address', help='O endereço da carteira a ser consultado.')
+    parser_balance.add_argument('--host', default='localhost', help='O host do nó da blockchain.')
+    parser_balance.add_argument('--port', default=5000, type=int, help='A porta do nó da blockchain.')
+    parser_balance.set_defaults(func=balance)
 
     args = parser.parse_args()
 

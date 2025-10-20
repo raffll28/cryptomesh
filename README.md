@@ -21,7 +21,7 @@ Uma implementação de uma blockchain simples para fins educacionais.
     *   Criar um endpoint `GET /balance/<address>` em `src/api.py`.
     *   A lógica deverá varrer o conjunto de UTXOs (`self.utxo`) para somar os valores pertencentes ao endereço.
 
-### 3. Implementar comando de saldo na CLI
+### 3. Implementar comando de saldo na CLI [Concluído]
 
 *   **Objetivo:** Expor a funcionalidade de consulta de saldo na CLI.
 *   **Passos:**
