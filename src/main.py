@@ -16,6 +16,7 @@ def send(args):
     payload = {
         'recipient_address': args.pubkey,
         'amount': args.amount,
+        'fee': args.fee,
     }
 
     try:
@@ -72,6 +73,7 @@ def main():
     parser_send = subparsers.add_parser('send', help='Envia moedas para outro endereço a partir da carteira do nó.')
     parser_send.add_argument('pubkey', help='A chave pública (endereço) do destinatário.')
     parser_send.add_argument('amount', type=float, help='A quantidade de moedas a serem enviadas.')
+    parser_send.add_argument('--fee', type=float, default=0.0, help='Taxa de transação opcional.')
     parser_send.add_argument('--host', default='localhost', help='O host do nó da blockchain.')
     parser_send.add_argument('--port', default=5000, type=int, help='A porta do nó da blockchain.')
     parser_send.set_defaults(func=send)

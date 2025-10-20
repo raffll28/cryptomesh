@@ -58,8 +58,10 @@ def new_transaction():
     if not all(k in values for k in required):
         return 'Valores faltando: recipient_address, amount', 400
 
+    fee = values.get('fee', 0.0)
+
     # Cria uma nova transação UTXO usando a carteira do nó
-    tx = blockchain.new_utxo_transaction(node_wallet, values['recipient_address'], values['amount'])
+    tx = blockchain.new_utxo_transaction(node_wallet, values['recipient_address'], values['amount'], fee)
 
     if tx is None:
         return 'Saldo insuficiente para a transação', 400

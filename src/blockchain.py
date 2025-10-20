@@ -208,10 +208,11 @@ class Blockchain:
                     break
         return accumulated_amount, spendable_outputs
 
-    def new_utxo_transaction(self, wallet, recipient_address, amount):
-        accumulated, spendable_utxo_keys = self._find_spendable_outputs(wallet.public_key, amount)
+    def new_utxo_transaction(self, wallet, recipient_address, amount, fee=0.0):
+        total_amount_needed = amount + fee
+        accumulated, spendable_utxo_keys = self._find_spendable_outputs(wallet.public_key, total_amount_needed)
 
-        if accumulated < amount:
+        if accumulated < total_amount_needed:
             return None # Saldo insuficiente
 
         inputs = []
@@ -220,9 +221,10 @@ class Blockchain:
             inputs.append(TxInput(tx_id, int(output_index)))
 
         outputs = [TxOutput(recipient_address, amount)]
-        if accumulated > amount:
+        change = accumulated - total_amount_needed
+        if change > 0:
             # Troco
-            outputs.append(TxOutput(wallet.public_key, accumulated - amount))
+            outputs.append(TxOutput(wallet.public_key, change))
 
         tx = Transaction(inputs, outputs)
         self.sign_transaction(wallet, tx)

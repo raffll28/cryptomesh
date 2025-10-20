@@ -107,7 +107,7 @@ Endpoint interno para receber blocos de outros nós.
 
 Para introduzir um sistema de taxas de transação (transaction fees) similar ao do Bitcoin, seguiremos os seguintes passos:
 
-#### **Passo 1: Modificar a Lógica de Transação para Incluir Taxas**
+#### **Passo 1: Modificar a Lógica de Transação para Incluir Taxas [Concluído]**
 
 *   **Objetivo:** Permitir que uma transação tenha uma "sobra" de valor que não é gasta nem volta como troco, representando a taxa.
 *   **Ações:**
