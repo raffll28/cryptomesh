@@ -3,13 +3,15 @@ import json
 import requests
 from wallet import Wallet
 
-def create_wallet():
-    """Cria uma nova carteira e imprime as chaves pública e privada."""
-    w = Wallet()
-    w.create_keys()
-    print("Carteira criada com sucesso!")
-    print(f"Chave Privada: {w.private_key}")
+def create_wallet(args):
+    """Cria uma nova carteira e a salva em um arquivo."""
+    # Se um node_id não for fornecido, usa um nome de arquivo genérico
+    node_id = args.node_id if args.node_id else 'user_wallet'
+    w = Wallet(node_id=node_id)
+    w.save_keys() # As chaves são criadas e salvas no __init__ se não existirem
+    print(f"Carteira '{w.wallet_file}' criada/carregada com sucesso!")
     print(f"Chave Pública (Endereço): {w.public_key}")
+    # A chave privada não será mais impressa por segurança
 
 def send(args):
     """Envia moedas para outro endereço a partir da carteira do nó."""
@@ -66,8 +68,9 @@ def main():
     subparsers = parser.add_subparsers(dest='command', help='Comandos disponíveis')
 
     # Comando para criar uma carteira
-    parser_create_wallet = subparsers.add_parser('create-wallet', help='Cria uma nova carteira.')
-    parser_create_wallet.set_defaults(func=lambda args: create_wallet())
+    parser_create_wallet = subparsers.add_parser('create-wallet', help='Cria ou carrega uma carteira.')
+    parser_create_wallet.add_argument('--node-id', help='O ID do nó para o qual a carteira será criada (opcional).')
+    parser_create_wallet.set_defaults(func=create_wallet)
 
     # Comando para enviar moedas
     parser_send = subparsers.add_parser('send', help='Envia moedas para outro endereço a partir da carteira do nó.')

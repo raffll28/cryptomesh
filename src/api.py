@@ -8,15 +8,11 @@ import requests
 # Instancia o nosso nó
 app = Flask(__name__)
 
-# Cria a carteira para este nó
-node_wallet = Wallet()
-node_wallet.create_keys()
-
-# O identificador do nó é a chave pública da sua carteira
-node_identifier = node_wallet.public_key
-
 # A instância da Blockchain será criada no main, com o arquivo de storage correto
 blockchain = None
+# A carteira do nó será criada no main, com o ID do nó (porta)
+node_wallet = None
+node_identifier = None
 
 @app.route('/mine', methods=['GET'])
 def mine():
@@ -163,6 +159,10 @@ if __name__ == '__main__':
     # Instancia a blockchain com um arquivo de storage específico para esta porta
     storage_file = f'blockchain-{port}.json'
     blockchain = Blockchain(storage_path=storage_file)
+
+    # Cria a carteira para este nó, usando a porta como identificador
+    node_wallet = Wallet(node_id=port)
+    node_identifier = node_wallet.public_key
 
     print(f"Carteira do nó: {node_identifier}")
 
