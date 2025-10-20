@@ -4,42 +4,108 @@ Uma implementação de uma blockchain simples para fins educacionais.
 
 ---
 
-## Plano de Melhorias da CLI e API
+## Comandos da CLI
 
-### 1. Corrigir o comando `send` na CLI [Concluído]
+A interação com a blockchain pode ser feita através do `src/main.py`.
 
-*   **Objetivo:** Alinhar o comando `send` da CLI com a lógica de transações UTXO da API.
-*   **Passos:**
-    *   Refatorar a função `send` em `src/main.py` para enviar apenas o endereço do destinatário e a quantia.
-    *   Remover a necessidade de fornecer uma chave privada no lado do cliente para essa operação.
-    *   Corrigir a função `create-wallet` que não estava gerando chaves.
+### `create-wallet`
 
-### 2. Adicionar endpoint de saldo na API [Concluído]
+Cria um novo par de chaves (privada e pública).
 
-*   **Objetivo:** Permitir a consulta de saldo de qualquer endereço.
-*   **Passos:**
-    *   Criar um endpoint `GET /balance/<address>` em `src/api.py`.
-    *   A lógica deverá varrer o conjunto de UTXOs (`self.utxo`) para somar os valores pertencentes ao endereço.
+```bash
+python src/main.py create-wallet
+```
 
-### 3. Implementar comando de saldo na CLI [Concluído]
+### `send <destinatário> <quantia>`
 
-*   **Objetivo:** Expor a funcionalidade de consulta de saldo na CLI.
-*   **Passos:**
-    *   Adicionar um novo comando `balance <address>` em `src/main.py`.
-    *   O comando deverá fazer uma requisição ao novo endpoint `/balance/<address>` da API.
+Cria e propaga uma transação a partir da carteira do nó para o endereço de um destinatário.
 
-### 4. Atualizar a documentação
+```bash
+python src/main.py send <chave_publica_destinatario> <quantia>
+```
 
-*   **Objetivo:** Manter o `README.md` atualizado com as novas funcionalidades.
-*   **Passos:**
-    *   Detalhar os novos comandos da CLI.
-    *   Documentar os novos endpoints da API.
+### `balance <endereço>`
+
+Consulta o saldo de uma carteira específica.
+
+```bash
+python src/main.py balance <chave_publica>
+```
+
+### `mine`
+
+Minera um novo bloco, incluindo as transações do mempool.
+
+```bash
+python src/main.py mine
+```
+
+### `print-chain`
+
+Exibe a cadeia de blocos completa.
+
+```bash
+python src/main.py print-chain
+```
+
+---
+
+## Endpoints da API
+
+A API é executada com `python src/api.py` e fornece os seguintes endpoints:
+
+### `GET /mine`
+
+Minera um novo bloco e o adiciona à cadeia.
+
+### `POST /transactions/new`
+
+Adiciona uma nova transação ao mempool.
+
+*   **Body (JSON):**
+    ```json
+    {
+     "recipient_address": "...",
+     "amount": 0.5
+    }
+    ```
+
+### `GET /chain`
+
+Retorna a cadeia de blocos completa.
+
+### `GET /balance/<address>`
+
+Retorna o saldo de um endereço específico.
+
+### `POST /nodes/register`
+
+Registra um ou mais nós na rede.
+
+*   **Body (JSON):**
+    ```json
+    {
+     "nodes": ["http://localhost:5001", "http://localhost:5002"]
+    }
+    ```
+
+### `GET /nodes/resolve`
+
+Executa o algoritmo de consenso para resolver conflitos na cadeia.
+
+### `POST /transactions/receive`
+
+Endpoint interno para receber transações de outros nós.
+
+### `POST /blocks/receive`
+
+Endpoint interno para receber blocos de outros nós.
 
 ---
 
 ## Plano de Evolução para o Modelo Bitcoin (Concluído)
 
-Para tornar este projeto mais alinhado com a arquitetura de criptomoedas reais como o Bitcoin, propomos as seguintes melhorias, em ordem de implementação:
+Esta seção documenta as melhorias que foram implementadas para alinhar o projeto com a arquitetura de criptomoedas como o Bitcoin.
 
 ### 1. Implementar um Mempool de Transações [Concluído]
 
