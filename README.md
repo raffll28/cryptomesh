@@ -100,25 +100,3 @@ Endpoint interno para receber transações de outros nós.
 ### `POST /blocks/receive`
 
 Endpoint interno para receber blocos de outros nós.
-
----
-
-## Plano de Evolução para o Modelo Bitcoin (Concluído)
-
-Esta seção documenta as melhorias que foram implementadas para alinhar o projeto com a arquitetura de criptomoedas como o Bitcoin.
-
-### 1. Implementar um Mempool de Transações [Concluído]
-
-*   **Objetivo:** Criar uma "área de espera" para transações que foram recebidas mas ainda não foram incluídas em um bloco.
-
-### 2. Mudar do Modelo "Pull" para "Push" (Broadcast) [Concluído]
-
-*   **Objetivo:** Fazer com que transações e blocos recém-criados sejam ativamente propagados pela rede.
-
-### 3. Implementar Ajuste de Dificuldade Dinâmico [Concluído]
-
-*   **Objetivo:** Substituir a dificuldade fixa por uma que se ajuste periodicamente.
-
-### 4. (Avançado) Introduzir o Modelo UTXO [Concluído]
-
-*   **Objetivo:** Refatorar o sistema de transações para que ele se baseie em entradas (inputs) que consomem UTXOs e saídas (outputs) que criam novos UTXOs.
