@@ -6,6 +6,9 @@ import requests
 from wallet import Wallet
 from transaction import Transaction, TxInput, TxOutput
 
+# Constante para o endereço do bloco gênese
+GENESIS_ADDRESS = "CryptoMesh_Genesis_Address"
+
 class Blockchain:
     def __init__(self, storage_path='blockchain.json'):
         self.storage_path = storage_path
@@ -19,18 +22,25 @@ class Blockchain:
 
         self.load_chain()
 
+    def create_genesis_block(self):
+        """Cria o bloco gênese da blockchain."""
+        # A transação coinbase do bloco gênese não tem recompensa real
+        coinbase_tx = self.new_coinbase_transaction(GENESIS_ADDRESS, fees=0.0)
+        # O bloco gênese tem valores fixos para previous_hash e proof
+        genesis_block = self.new_block(previous_hash='1', proof=100)
+        return genesis_block
+
     def load_chain(self):
+        """Carrega a blockchain do arquivo ou cria uma nova se não existir."""
         try:
             with open(self.storage_path, 'r') as f:
                 self.chain = json.load(f)
             if not self.chain:
                 # Se o arquivo estiver vazio, cria o bloco gênese
-                coinbase_tx = self.new_coinbase_transaction("genesis_address")
-                self.new_block(previous_hash='1', proof=100)
+                self.create_genesis_block()
         except (FileNotFoundError, json.JSONDecodeError):
             # Se o arquivo não existir ou for inválido, cria o bloco gênese
-            coinbase_tx = self.new_coinbase_transaction("genesis_address")
-            self.new_block(previous_hash='1', proof=100)
+            self.create_genesis_block()
         
         self._rebuild_utxo_set()
 
