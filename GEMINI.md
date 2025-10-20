@@ -10,6 +10,27 @@ O projeto utiliza as seguintes tecnologias:
 *   **Flask:** Para expor a blockchain como uma API RESTful.
 *   **PyCryptodome:** Para a geração de carteiras e assinaturas digitais.
 
+## Ambiente de Desenvolvimento
+
+Para configurar o ambiente de desenvolvimento, siga os passos abaixo. Estas instruções são baseadas em um ambiente WSL2 (Windows Subsystem for Linux) e o uso de um ambiente virtual (`venv`).
+
+1.  **Clone o repositório:**
+    ```bash
+    git clone <URL_DO_REPOSITORIO>
+    cd cryptomesh
+    ```
+
+2.  **Crie e ative um ambiente virtual:**
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
+    ```
+
+3.  **Instale as dependências:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
 A arquitetura consiste em:
 
 *   `blockchain.py`: A classe principal que implementa a lógica da blockchain.
@@ -38,13 +59,13 @@ As principais dependências são:
 Para iniciar o nó da blockchain e a API, execute o seguinte comando:
 
 ```bash
-python src/api.py
+python3 src/api.py
 ```
 
 Por padrão, a API será executada em `http://localhost:5000`. Você pode especificar uma porta diferente usando o argumento `--port` ou `-p`:
 
 ```bash
-python src/api.py -p 5001
+python3 src/api.py -p 5001
 ```
 
 ### Endpoints da API
@@ -64,33 +85,33 @@ O arquivo `main.py` é uma interface de linha de comando que permite interagir c
 
 *   `create-wallet`: Cria uma nova carteira com um par de chaves pública/privada.
     ```bash
-    python src/main.py create-wallet
+    python3 src/main.py create-wallet
     ```
 
 *   `send`: Envia moedas da carteira do nó para outro endereço.
     ```bash
-    python src/main.py send <ENDEREÇO_DESTINATÁRIO> <QUANTIA> --fee <TAXA>
+    python3 src/main.py send <ENDEREÇO_DESTINATÁRIO> <QUANTIA> --fee <TAXA>
     ```
 
 *   `mine`: Solicita ao nó que minere um novo bloco.
     ```bash
-    python src/main.py mine
+    python3 src/main.py mine
     ```
 
 *   `print-chain`: Exibe a cadeia de blocos completa do nó.
     ```bash
-    python src/main.py print-chain
+    python3 src/main.py print-chain
     ```
 
 *   `balance`: Consulta o saldo de um endereço específico.
     ```bash
-    python src/main.py balance <ENDEREÇO>
+    python3 src/main.py balance <ENDEREÇO>
     ```
 
 Você pode especificar o host e a porta do nó para cada comando (o padrão é `localhost:5000`), por exemplo:
 
 ```bash
-python src/main.py mine --host localhost --port 5001
+python3 src/main.py mine --host localhost --port 5001
 ```
 
 ## Convenções de Desenvolvimento
