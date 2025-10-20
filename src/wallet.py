@@ -1,55 +1,53 @@
 from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
+import Crypto.Random
 import binascii
 
 class Wallet:
-    def __init__(self, private_key_hex=None):
+    def __init__(self):
         """
-        Cria uma nova carteira. Se uma chave privada em hexadecimal for fornecida,
-        a carteira será carregada a partir dela. Caso contrário, um novo par de chaves será gerado.
+        Initializes a new wallet with a private and public key pair.
         """
-        if private_key_hex:
-            self._private_key = RSA.import_key(binascii.unhexlify(private_key_hex))
-        else:
-            self._private_key = RSA.generate(1024)
-        
-        self._public_key = self._private_key.publickey()
+        self.private_key = None
+        self.public_key = None
 
-    @property
-    def public_key(self):
+    def create_keys(self):
         """
-        Retorna a chave pública em formato hexadecimal.
+        Generates a new private and public key pair.
         """
-        return binascii.hexlify(self._public_key.export_key(format='DER')).decode('ascii')
+        private_key = RSA.generate(1024, Crypto.Random.new().read)
+        public_key = private_key.publickey()
+        self.private_key = binascii.hexlify(private_key.exportKey(format='DER')).decode('ascii')
+        self.public_key = binascii.hexlify(public_key.exportKey(format='DER')).decode('ascii')
 
-    @property
-    def private_key(self):
+    def load_keys(self, private_key, public_key):
         """
-        Retorna a chave privada em formato hexadecimal (apenas para fins de demonstração).
-        EM UM SISTEMA REAL, NUNCA EXPONHA A CHAVE PRIVADA.
+        Loads a private and public key pair from strings.
         """
-        return binascii.hexlify(self._private_key.export_key(format='DER')).decode('ascii')
+        self.private_key = private_key
+        self.public_key = public_key
 
-    def sign(self, data):
+    def sign(self, private_key_hex, transaction_hash):
         """
-        Assina os dados fornecidos com a chave privada.
+        Signs a transaction hash with the private key.
         """
-        h = SHA256.new(str(data).encode('utf8'))
-        signer = pkcs1_15.new(self._private_key)
-        signature = signer.sign(h)
-        return binascii.hexlify(signature).decode('ascii')
+        private_key = RSA.importKey(binascii.unhexlify(private_key_hex))
+        signer = pkcs1_15.new(private_key)
+        h = SHA256.new(transaction_hash.encode('utf8'))
+        return binascii.hexlify(signer.sign(h)).decode('ascii')
 
     @staticmethod
-    def verify(public_key_hex, data, signature_hex):
+    def verify_signature(public_key_hex, signature, transaction_hash):
         """
-        Verifica a assinatura com a chave pública.
+        Verifies the signature of a transaction hash.
         """
+        public_key = RSA.import_key(binascii.unhexlify(public_key_hex))
+        verifier = pkcs1_15.new(public_key)
+        h = SHA256.new(transaction_hash.encode('utf8'))
         try:
-            public_key = RSA.import_key(binascii.unhexlify(public_key_hex))
-            h = SHA256.new(str(data).encode('utf8'))
-            verifier = pkcs1_15.new(public_key)
-            verifier.verify(h, binascii.unhexlify(signature_hex))
+            verifier.verify(h, binascii.unhexlify(signature))
             return True
         except (ValueError, TypeError):
             return False
+

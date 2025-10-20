@@ -4,6 +4,7 @@ import hashlib
 from urllib.parse import urlparse
 import requests
 from wallet import Wallet
+from transaction import Transaction, TxInput, TxOutput
 
 class Blockchain:
     def __init__(self, storage_path='blockchain.json'):
@@ -14,6 +15,7 @@ class Blockchain:
         self.difficulty = 4
         self.DIFFICULTY_ADJUSTMENT_INTERVAL = 10
         self.BLOCK_GENERATION_INTERVAL = 10 # in seconds
+        self.utxo = {}
 
         self.load_chain()
 
@@ -23,10 +25,31 @@ class Blockchain:
                 self.chain = json.load(f)
             if not self.chain:
                 # Se o arquivo estiver vazio, cria o bloco gênese
+                coinbase_tx = self.new_coinbase_transaction("genesis_address")
                 self.new_block(previous_hash='1', proof=100)
         except (FileNotFoundError, json.JSONDecodeError):
             # Se o arquivo não existir ou for inválido, cria o bloco gênese
+            coinbase_tx = self.new_coinbase_transaction("genesis_address")
             self.new_block(previous_hash='1', proof=100)
+        
+        self._rebuild_utxo_set()
+
+    def _rebuild_utxo_set(self):
+        self.utxo = {}
+        for block in self.chain:
+            self._update_utxo_set(block)
+
+    def _update_utxo_set(self, block):
+        for tx in block['transactions']:
+            # Adiciona as novas saídas
+            for i, output in enumerate(tx['outputs']):
+                self.utxo[f"{tx['id']}:{i}"] = output
+            # Remove as entradas gastas (ignorando transações coinbase)
+            if tx['inputs'] and tx['inputs'][0]['transaction_id'] != '0':
+                for input_tx in tx['inputs']:
+                    spent_utxo_key = f"{input_tx['transaction_id']}:{input_tx['output_index']}"
+                    if spent_utxo_key in self.utxo:
+                        del self.utxo[spent_utxo_key]
 
     def save_chain(self):
         with open(self.storage_path, 'w') as f:
@@ -93,6 +116,7 @@ class Blockchain:
         if new_chain:
             self.chain = new_chain
             self.save_chain()
+            self._rebuild_utxo_set()
             return True
 
         return False
@@ -109,12 +133,13 @@ class Blockchain:
             'previous_hash': previous_hash or self.hash(self.chain[-1]),
         }
 
-        # Reseta a lista de transações atuais
-        self.mempool = []
-
         self.chain.append(block)
+        self._update_utxo_set(block)
         self._adjust_difficulty()
         self.save_chain() # Salva a cadeia após adicionar um novo bloco
+        
+        # Reseta a lista de transações atuais
+        self.mempool = []
         return block
 
     def add_block(self, block):
@@ -131,12 +156,18 @@ class Blockchain:
         if not self.valid_proof(previous_block['proof'], block['proof'], self.hash(previous_block)):
             return False
 
-        # Limpa o mempool de transações que já estão no bloco recebido
-        self.mempool = [tx for tx in self.mempool if tx not in block['transactions']]
+        # Verifica todas as transações no bloco
+        for tx in block['transactions']:
+            if not self.verify_transaction(tx):
+                return False
 
         self.chain.append(block)
+        self._update_utxo_set(block)
         self._adjust_difficulty()
         self.save_chain()
+
+        # Limpa o mempool de transações que já estão no bloco recebido
+        self.mempool = [tx for tx in self.mempool if tx not in block['transactions']]
         return True
 
     def _adjust_difficulty(self):
@@ -158,37 +189,85 @@ class Blockchain:
         elif actual_time > expected_time * 2:
             self.difficulty = max(1, self.difficulty - 1)
 
-    def new_transaction(self, sender, recipient, amount, signature):
-        """
-        Adiciona uma nova transação à lista de transações, com verificação de assinatura.
-        """
-        if sender == "0":
-            # Transação de mineração, não precisa de assinatura
-            self.mempool.append({
-                'sender': sender,
-                'recipient': recipient,
-                'amount': amount,
-                'signature': signature
-            })
-            return self.last_block['index'] + 1
+    def _find_spendable_outputs(self, owner_address, amount_needed):
+        spendable_outputs = []
+        accumulated_amount = 0
+        for utxo_key, utxo_output in self.utxo.items():
+            if utxo_output['recipient_address'] == owner_address:
+                accumulated_amount += utxo_output['amount']
+                spendable_outputs.append(utxo_key)
+                if accumulated_amount >= amount_needed:
+                    break
+        return accumulated_amount, spendable_outputs
 
-        transaction = {
-            'sender': sender,
-            'recipient': recipient,
-            'amount': amount,
-        }
+    def new_utxo_transaction(self, wallet, recipient_address, amount):
+        accumulated, spendable_utxo_keys = self._find_spendable_outputs(wallet.public_key, amount)
 
-        if not Wallet.verify(sender, transaction, signature):
-            return False
+        if accumulated < amount:
+            return None # Saldo insuficiente
 
-        self.mempool.append({
-            'sender': sender,
-            'recipient': recipient,
-            'amount': amount,
-            'signature': signature
-        })
+        inputs = []
+        for utxo_key in spendable_utxo_keys:
+            tx_id, output_index = utxo_key.split(':')
+            inputs.append(TxInput(tx_id, int(output_index)))
 
-        return self.last_block['index'] + 1
+        outputs = [TxOutput(recipient_address, amount)]
+        if accumulated > amount:
+            # Troco
+            outputs.append(TxOutput(wallet.public_key, accumulated - amount))
+
+        tx = Transaction(inputs, outputs)
+        self.sign_transaction(wallet, tx)
+
+        self.mempool.append(tx.to_dict())
+        return tx
+
+    def new_coinbase_transaction(self, recipient_address):
+        """Cria a transação de mineração (coinbase)."""
+        # A entrada da transação coinbase é especial
+        coinbase_input = TxInput(transaction_id='0', output_index=-1)
+        # A recompensa de mineração é 1
+        coinbase_output = TxOutput(recipient_address, 1)
+        
+        tx = Transaction(inputs=[coinbase_input], outputs=[coinbase_output])
+        self.mempool.append(tx.to_dict())
+        return tx
+
+    def sign_transaction(self, wallet, tx):
+        tx_hash = tx.calculate_hash()
+        signature = wallet.sign(wallet.private_key, tx_hash)
+        for input_tx in tx.inputs:
+            input_tx.signature = signature
+
+    def verify_transaction(self, tx_dict):
+        # Ignora a verificação para transações coinbase
+        if not tx_dict['inputs'] or tx_dict['inputs'][0]['transaction_id'] == '0':
+            return True
+
+        tx_for_hash = Transaction([TxInput.from_dict(i) for i in tx_dict['inputs']], [TxOutput.from_dict(o) for o in tx_dict['outputs']])
+        tx_hash = tx_for_hash.calculate_hash()
+        
+        total_input_value = 0
+        for i, input_tx_dict in enumerate(tx_dict['inputs']):
+            utxo_key = f"{input_tx_dict['transaction_id']}:{input_tx_dict['output_index']}"
+            if utxo_key not in self.utxo:
+                return False # Entrada não encontrada no conjunto UTXO
+
+            utxo = self.utxo[utxo_key]
+            total_input_value += utxo['amount']
+            
+            # A chave pública do dono da UTXO é o recipient_address da saída original
+            public_key = utxo['recipient_address']
+            signature = input_tx_dict['signature']
+            if not Wallet.verify_signature(public_key, signature, tx_hash):
+                return False
+
+        total_output_value = sum(output['amount'] for output in tx_dict['outputs'])
+
+        if total_input_value < total_output_value:
+            return False # Valor de entrada insuficiente
+
+        return True
 
     @staticmethod
     def hash(block):

@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from blockchain import Blockchain
+from wallet import Wallet
 import json
 from uuid import uuid4
 from argparse import ArgumentParser
@@ -8,8 +9,12 @@ import requests
 # Instancia o nosso nó
 app = Flask(__name__)
 
-# Gera um endereço globalmente único para este nó
-node_identifier = str(uuid4()).replace('-', '')
+# Cria a carteira para este nó
+node_wallet = Wallet()
+node_wallet.create_keys()
+
+# O identificador do nó é a chave pública da sua carteira
+node_identifier = node_wallet.public_key
 
 # A instância da Blockchain será criada no main, com o arquivo de storage correto
 blockchain = None
@@ -20,14 +25,8 @@ def mine():
     last_block = blockchain.last_block
     proof = blockchain.proof_of_work(last_block)
 
-    # Somos recompensados por encontrar a prova, adicionando uma transação.
-    # O remetente é "0" para significar que esta é uma nova moeda.
-    blockchain.new_transaction(
-        sender="0",
-        recipient=node_identifier,
-        amount=1,
-        signature=""
-    )
+    # Adiciona a transação de recompensa (coinbase)
+    blockchain.new_coinbase_transaction(node_identifier)
 
     # Forja o novo Bloco, adicionando-o à cadeia
     previous_hash = blockchain.hash(last_block)
@@ -55,42 +54,38 @@ def new_transaction():
     values = request.get_json()
 
     # Verifica se os campos obrigatórios estão nos dados postados
-    required = ['sender', 'recipient', 'amount', 'signature']
+    required = ['recipient_address', 'amount']
     if not all(k in values for k in required):
-        return 'Valores faltando', 400
+        return 'Valores faltando: recipient_address, amount', 400
 
-    # Cria uma nova transação
-    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'], values['signature'])
+    # Cria uma nova transação UTXO usando a carteira do nó
+    tx = blockchain.new_utxo_transaction(node_wallet, values['recipient_address'], values['amount'])
 
-    if not index:
-        return 'Assinatura da transação é inválida', 400
+    if tx is None:
+        return 'Saldo insuficiente para a transação', 400
 
     # Transmite a nova transação para todos os nós da rede
     for node in blockchain.nodes:
         try:
-            requests.post(f'http://{node}/transactions/receive', json=values)
+            requests.post(f'http://{node}/transactions/receive', json=tx.to_dict())
         except requests.exceptions.ConnectionError:
             # Ignora nós que não estão respondendo
             pass
 
-    response = {'message': f'Transação adicionada e transmitida. Será incluída no Bloco {index}'}
+    response = {'message': f'Transação criada e transmitida.'}
     return jsonify(response), 201
 
 @app.route('/transactions/receive', methods=['POST'])
 def receive_transaction():
-    values = request.get_json()
-    # Verifica se os campos obrigatórios estão nos dados postados
-    required = ['sender', 'recipient', 'amount', 'signature']
-    if not all(k in values for k in required):
+    tx_data = request.get_json()
+    # TODO: Adicionar validação completa da transação recebida
+    required = ['inputs', 'outputs', 'id']
+    if not all(k in tx_data for k in required):
         return 'Valores faltando na transação recebida', 400
 
-    # Adiciona a transação recebida ao mempool
-    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'], values['signature'])
-
-    if not index:
-        return 'Transação recebida inválida', 400
-
-    response = {'message': f'Transação recebida e adicionada ao Bloco {index}'}
+    blockchain.mempool.append(tx_data)
+    
+    response = {'message': f'Transação recebida e adicionada ao mempool.'}
     return jsonify(response), 201
 
 @app.route('/blocks/receive', methods=['POST'])
