@@ -278,32 +278,43 @@ class Blockchain:
             input_tx.signature = signature
 
     def verify_transaction(self, tx_dict):
-        # Ignora a verificação para transações coinbase
+        """Verifica se uma transação é válida."""
+        # Transações coinbase não precisam de verificação de entrada
         if not tx_dict['inputs'] or tx_dict['inputs'][0]['transaction_id'] == '0':
             return True
 
-        tx_for_hash = Transaction([TxInput.from_dict(i) for i in tx_dict['inputs']], [TxOutput.from_dict(o) for o in tx_dict['outputs']])
+        # Recria a transação a partir do dicionário para calcular o hash
+        tx_for_hash = Transaction(
+            [TxInput.from_dict(i) for i in tx_dict['inputs']],
+            [TxOutput.from_dict(o) for o in tx_dict['outputs']]
+        )
         tx_hash = tx_for_hash.calculate_hash()
-        
+
         total_input_value = 0
         for i, input_tx_dict in enumerate(tx_dict['inputs']):
             utxo_key = f"{input_tx_dict['transaction_id']}:{input_tx_dict['output_index']}"
+            
+            # 1. Verifica se a UTXO que está sendo gasta realmente existe
             if utxo_key not in self.utxo:
-                return False # Entrada não encontrada no conjunto UTXO
+                print(f"Erro de verificação: UTXO {utxo_key} não encontrada.")
+                return False
 
             utxo = self.utxo[utxo_key]
             total_input_value += utxo['amount']
             
-            # A chave pública do dono da UTXO é o recipient_address da saída original
+            # 2. Verifica a assinatura
+            # A chave pública do dono da UTXO é o endereço do destinatário da saída original
             public_key = utxo['recipient_address']
             signature = input_tx_dict['signature']
             if not Wallet.verify_signature(public_key, signature, tx_hash):
+                print(f"Erro de verificação: Assinatura inválida para a entrada {i}.")
                 return False
 
+        # 3. Verifica se a soma das entradas é maior ou igual à soma das saídas
         total_output_value = sum(output['amount'] for output in tx_dict['outputs'])
-
         if total_input_value < total_output_value:
-            return False # Valor de entrada insuficiente
+            print(f"Erro de verificação: Valor de entrada ({total_input_value}) é menor que o de saída ({total_output_value}).")
+            return False
 
         return True
 
