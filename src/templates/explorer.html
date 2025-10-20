@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockchain Explorer</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .block {
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .block h3 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Blockchain Explorer</h1>
+    {% for block in chain %}
+        <div class="block">
+            <h3>Block {{ block.index }}</h3>
+            <table>
+                <tr>
+                    <th>Timestamp</th>
+                    <td>{{ block.timestamp }}</td>
+                </tr>
+                <tr>
+                    <th>Proof</th>
+                    <td>{{ block.proof }}</td>
+                </tr>
+                <tr>
+                    <th>Previous Hash</th>
+                    <td>{{ block.previous_hash }}</td>
+                </tr>
+                <tr>
+                    <th>Transactions</th>
+                    <td>
+                        <ul>
+                            {% for tx in block.transactions %}
+                                <li>{{ tx }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    {% endfor %}
+</body>
+</html>

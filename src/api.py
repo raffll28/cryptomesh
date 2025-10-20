@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from blockchain import Blockchain
 from wallet import Wallet
 import json
@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 import requests
 
 # Instancia o nosso nó
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates')
 
 # A instância da Blockchain será criada no main, com o arquivo de storage correto
 blockchain = None
@@ -109,6 +109,10 @@ def full_chain():
         'length': len(blockchain.chain),
     }
     return jsonify(response), 200
+
+@app.route('/explorer', methods=['GET'])
+def explorer():
+    return render_template('explorer.html', chain=blockchain.chain)
 
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
