@@ -160,4 +160,6 @@ if __name__ == '__main__':
     storage_file = f'blockchain-{port}.json'
     blockchain = Blockchain(storage_path=storage_file)
 
+    print(f"Carteira do nó: {node_identifier}")
+
     app.run(host='0.0.0.0', port=port)

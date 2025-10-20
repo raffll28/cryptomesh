@@ -100,3 +100,32 @@ Endpoint interno para receber transações de outros nós.
 ### `POST /blocks/receive`
 
 Endpoint interno para receber blocos de outros nós.
+
+---
+
+### **Plano de Implementação: Taxas de Transação**
+
+Para introduzir um sistema de taxas de transação (transaction fees) similar ao do Bitcoin, seguiremos os seguintes passos:
+
+#### **Passo 1: Modificar a Lógica de Transação para Incluir Taxas**
+
+*   **Objetivo:** Permitir que uma transação tenha uma "sobra" de valor que não é gasta nem volta como troco, representando a taxa.
+*   **Ações:**
+    1.  **Atualizar a CLI:** Modificar o comando `send` em `src/main.py` para aceitar um novo argumento opcional, `--fee`.
+    2.  **Atualizar a API:** O endpoint `/transactions/new` em `src/api.py` precisará aceitar um campo `fee` no corpo da requisição.
+    3.  **Ajustar o Core:** O método `new_utxo_transaction` em `src/blockchain.py` será o principal afetado. Ele precisará garantir que `valor_total_dos_inputs >= valor_a_enviar + taxa`. O valor do troco será `valor_total_dos_inputs - valor_a_enviar - taxa`.
+
+#### **Passo 2: Coletar as Taxas durante a Mineração**
+
+*   **Objetivo:** Recompensar o minerador com a soma das taxas de todas as transações que ele incluir em um novo bloco.
+*   **Ações:**
+    1.  **Atualizar a Mineração:** No endpoint `/mine` em `src/api.py`, antes de criar a transação de recompensa (*coinbase*), o código precisará varrer todas as transações do `mempool` que serão adicionadas ao bloco.
+    2.  **Calcular Taxa Total:** Para cada transação, o método calculará a taxa (soma dos inputs - soma dos outputs). A soma de todas essas taxas será o prêmio do minerador.
+    3.  **Atualizar Recompensa:** O valor total das taxas será somado à recompensa fixa do bloco (que hoje é 1) na transação de *coinbase*.
+
+#### **Passo 3: Atualizar a Validação e a Documentação**
+
+*   **Objetivo:** Garantir que a rede valide corretamente as transações com taxas e que a nova funcionalidade esteja documentada.
+*   **Ações:**
+    1.  **Revisar Validação:** O método `verify_transaction` já deve, implicitamente, suportar taxas (ele já checa se `input >= output`), mas vamos revisar para ter certeza.
+    2.  **Atualizar `README.md`:** Documentar o novo argumento `--fee` no comando `send` e o novo campo na API.
