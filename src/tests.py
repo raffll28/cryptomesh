@@ -4,31 +4,33 @@ import subprocess
 import time
 import os
 
+api_process_1 = None
+api_process_2 = None
+
+def setUpModule():
+    global api_process_1, api_process_2
+    # Inicia duas instâncias da API em portas diferentes
+    api_process_1 = subprocess.Popen(["/home/racaz/gits/cryptomesh/.venv/bin/python", "src/api.py", "-p", "5001"])
+    api_process_2 = subprocess.Popen(["/home/racaz/gits/cryptomesh/.venv/bin/python", "src/api.py", "-p", "5002"])
+    time.sleep(2) # Dá tempo para as APIs iniciarem
+
+def tearDownModule():
+    # Termina os processos da API
+    api_process_1.terminate()
+    api_process_1.wait()
+    api_process_2.terminate()
+    api_process_2.wait()
+
+    # Limpa os arquivos de teste
+    for port in [5001, 5002]:
+        if os.path.exists(f"blockchain-{port}.json"):
+            os.remove(f"blockchain-{port}.json")
+        if os.path.exists(f"wallet-{port}.json"):
+            os.remove(f"wallet-{port}.json")
+    if os.path.exists("wallet-user_wallet.json"):
+        os.remove("wallet-user_wallet.json")
+
 class TestBlockchain(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        # Inicia duas instâncias da API em portas diferentes
-        cls.api_process_1 = subprocess.Popen(["/home/racaz/gits/cryptomesh/.venv/bin/python", "src/api.py", "-p", "5001"])
-        cls.api_process_2 = subprocess.Popen(["/home/racaz/gits/cryptomesh/.venv/bin/python", "src/api.py", "-p", "5002"])
-        time.sleep(2) # Dá tempo para as APIs iniciarem
-
-    @classmethod
-    def tearDownClass(cls):
-        # Termina os processos da API
-        cls.api_process_1.terminate()
-        cls.api_process_1.wait()
-        cls.api_process_2.terminate()
-        cls.api_process_2.wait()
-
-        # Limpa os arquivos de teste
-        for port in [5001, 5002]:
-            if os.path.exists(f"blockchain-{port}.json"):
-                os.remove(f"blockchain-{port}.json")
-            if os.path.exists(f"wallet-{port}.json"):
-                os.remove(f"wallet-{port}.json")
-        if os.path.exists("wallet-user_wallet.json"):
-            os.remove("wallet-user_wallet.json")
 
     def setUp(self):
         self.base_url_1 = "http://localhost:5001"
