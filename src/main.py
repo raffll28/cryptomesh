@@ -51,10 +51,12 @@ def print_chain(host, port):
 def create_wallet_cli():
     questions = [
         inquirer.Text('node_id', message="Digite um nome para a carteira (deixe em branco para 'user_wallet')"),
+        inquirer.Password('password', message="Digite uma senha para sua carteira (será usada para criptografar a chave privada)"),
     ]
     answers = inquirer.prompt(questions)
     node_id = answers['node_id'] if answers['node_id'] else 'user_wallet'
-    w = Wallet(node_id=node_id)
+    password = answers['password']
+    w = Wallet(node_id=node_id, password=password)
     print(f"\nCarteira '{w.wallet_file}' criada/carregada com sucesso!")
     print(f"Chave Pública (Endereço): {w.public_key}\n")
 
@@ -129,4 +131,17 @@ def main():
             break
 
 if __name__ == '__main__':
-    main()
+    import sys
+    from getpass import getpass
+
+    if len(sys.argv) > 1 and sys.argv[1] == 'create-wallet':
+        node_id = 'user_wallet'
+        if len(sys.argv) > 2:
+            node_id = sys.argv[2]
+        
+        password = getpass("Digite uma senha para sua carteira (será usada para criptografar a chave privada): ")
+        w = Wallet(node_id=node_id, password=password)
+        print(f"\nCarteira '{w.wallet_file}' criada/carregada com sucesso!")
+        print(f"Chave Pública (Endereço): {w.public_key}\n")
+    else:
+        main()

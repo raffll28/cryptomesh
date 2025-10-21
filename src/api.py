@@ -165,6 +165,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on')
     parser.add_argument('--difficulty-interval', default=10, type=int, help='Intervalo de ajuste de dificuldade')
     parser.add_argument('--block-time', default=10, type=int, help='Tempo de geração de bloco em segundos')
+    parser.add_argument('--wallet-password', default=None, help='Senha para a carteira do nó (se criptografada)')
     args = parser.parse_args()
     port = args.port
 
@@ -177,7 +178,7 @@ if __name__ == '__main__':
     )
 
     # Cria a carteira para este nó, usando a porta como identificador
-    node_wallet = Wallet(node_id=port)
+    node_wallet = Wallet(node_id=port, password=args.wallet_password)
     node_identifier = node_wallet.public_key
 
     print(f"Carteira do nó: {node_identifier}")

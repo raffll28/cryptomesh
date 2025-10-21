@@ -104,3 +104,4 @@ Para mais detalhes sobre cada endpoint, consulte o arquivo `GEMINI.md`.
 ## Melhorias de Segurança
 
 *   [x] Adicionar validação completa da transação recebida na rota `/transactions/receive`.
+*   [x] Criptografia de chaves privadas da carteira.

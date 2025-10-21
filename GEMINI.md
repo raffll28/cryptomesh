@@ -123,3 +123,4 @@ python3 src/main.py mine --host localhost --port 5001
 ## Regras de Workflow
 
 *   Ao final de cada passo do plano, devo ajustar o README.md para marcar o passo como concluído e depois fazer o commit das mudanças.
+*   Antes de fazer o commit, devo executar os testes unitários para verificar as mudanças.

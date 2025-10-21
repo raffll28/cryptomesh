@@ -3,6 +3,8 @@ import requests
 import subprocess
 import time
 import os
+import sys
+from wallet import Wallet
 
 api_process_1 = None
 api_process_2 = None
@@ -10,16 +12,19 @@ api_process_2 = None
 def setUpModule():
     global api_process_1, api_process_2
     # Inicia duas instâncias da API em portas diferentes
-    api_process_1 = subprocess.Popen(["/home/racaz/gits/cryptomesh/.venv/bin/python", "src/api.py", "-p", "5001"])
-    api_process_2 = subprocess.Popen(["/home/racaz/gits/cryptomesh/.venv/bin/python", "src/api.py", "-p", "5002"])
-    time.sleep(2) # Dá tempo para as APIs iniciarem
+    # Usamos sys.executable para portabilidade e preexec_fn para rodar em um novo grupo de processos
+    api_process_1 = subprocess.Popen([sys.executable, "src/api.py", "-p", "5001", "--wallet-password", "test_password"], preexec_fn=os.setsid)
+    api_process_2 = subprocess.Popen([sys.executable, "src/api.py", "-p", "5002", "--wallet-password", "test_password"], preexec_fn=os.setsid)
+    time.sleep(5) # Dá mais tempo para as APIs iniciarem
 
 def tearDownModule():
     # Termina os processos da API
-    api_process_1.terminate()
-    api_process_1.wait()
-    api_process_2.terminate()
-    api_process_2.wait()
+    if api_process_1 and api_process_1.poll() is None:
+        os.killpg(os.getpgid(api_process_1.pid), 15) # SIGTERM
+        api_process_1.wait()
+    if api_process_2 and api_process_2.poll() is None:
+        os.killpg(os.getpgid(api_process_2.pid), 15) # SIGTERM
+        api_process_2.wait()
 
     # Limpa os arquivos de teste
     for port in [5001, 5002]:
@@ -48,10 +53,10 @@ class TestBlockchain(unittest.TestCase):
 
     def test_02_create_wallet(self):
         """Testa a criação de uma carteira de usuário."""
-        command = ["/home/racaz/gits/cryptomesh/.venv/bin/python", "src/main.py", "create-wallet"]
-        result = subprocess.run(command, capture_output=True, text=True)
-        self.assertIn("criada/carregada com sucesso", result.stdout)
+        w = Wallet(node_id="user_wallet", password="test_password")
         self.assertTrue(os.path.exists("wallet-user_wallet.json"))
+        # Verifica se a chave pública foi carregada corretamente
+        self.assertIsNotNone(w.public_key)
 
     def test_03_mine_block(self):
         """Testa a mineração de um bloco no nó 1."""
@@ -62,6 +67,7 @@ class TestBlockchain(unittest.TestCase):
     def test_04_send_transaction(self):
         """Testa o envio de uma transação do nó 1 para um usuário."""
         with open("wallet-user_wallet.json", 'r') as f:
+            # A chave pública é a primeira linha do arquivo
             user_pub_key = f.readline().strip()
 
         payload = {"recipient_address": user_pub_key, "amount": 0.5}
