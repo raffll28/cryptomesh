@@ -98,3 +98,9 @@ A API RESTful fornece os seguintes endpoints para interação programática:
 *   `GET /nodes/resolve`: Executa o algoritmo de consenso.
 
 Para mais detalhes sobre cada endpoint, consulte o arquivo `GEMINI.md`.
+
+---
+
+## Melhorias de Segurança
+
+*   [x] Adicionar validação completa da transação recebida na rota `/transactions/receive`.

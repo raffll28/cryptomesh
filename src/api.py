@@ -86,6 +86,9 @@ def receive_transaction():
     if not all(k in tx_data for k in required):
         return 'Valores faltando na transação recebida', 400
 
+    if not blockchain.verify_transaction(tx_data):
+        return 'Transação recebida inválida', 400
+
     blockchain.mempool.append(tx_data)
     
     response = {'message': f'Transação recebida e adicionada ao mempool.'}
